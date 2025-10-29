@@ -1,0 +1,115 @@
+services:
+  # Main Bagisto Application
+  - type: web
+    name: bagisto-app
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: APP_NAME
+        value: Bagisto
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        fromService:
+          type: web
+          name: bagisto-app
+          property: host
+      - key: APP_ADMIN_URL
+        value: admin
+      - key: APP_TIMEZONE
+        value: UTC
+      - key: APP_LOCALE
+        value: en
+      - key: APP_FALLBACK_LOCALE
+        value: en
+      - key: APP_FAKER_LOCALE
+        value: en_US
+      - key: APP_CURRENCY
+        value: USD
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_LEVEL
+        value: error
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        fromDatabase:
+          name: bagisto-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: bagisto-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: bagisto-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: bagisto-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: bagisto-db
+          property: password
+      - key: SESSION_DRIVER
+        value: file
+      - key: SESSION_LIFETIME
+        value: 120
+      - key: BROADCAST_CONNECTION
+        value: log
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: CACHE_STORE
+        value: file
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: bagisto-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: bagisto-redis
+          property: port
+      - key: REDIS_PASSWORD
+        fromService:
+          type: redis
+          name: bagisto-redis
+          property: password
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        value: noreply@yourdomain.com
+      - key: MAIL_FROM_NAME
+        value: Bagisto Store
+      - key: APP_KEY
+        generateValue: true
+
+  # Redis Cache Service
+  - type: redis
+    name: bagisto-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # MySQL Database
+  - name: bagisto-db
+    databaseName: bagisto
+    user: bagisto_user
+    plan: starter
+    region: oregon
