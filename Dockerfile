@@ -67,9 +67,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Install Node.js dependencies and build assets
 RUN if [ -f "package-lock.json" ]; then \
-        npm ci --omit=dev; \
+        npm ci; \
     else \
-        npm install --production; \
+        npm install; \
     fi \
     && npm run build \
     && rm -rf node_modules
