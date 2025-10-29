@@ -79,11 +79,11 @@ services:
           type: redis
           name: bagisto-redis
           property: port
-      - key: REDIS_PASSWORD
+      - key: REDIS_URL
         fromService:
           type: redis
           name: bagisto-redis
-          property: password
+          property: connectionString
       - key: MAIL_MAILER
         value: smtp
       - key: MAIL_HOST
@@ -105,6 +105,7 @@ services:
     plan: starter
     region: oregon
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
 databases:
   # MySQL Database
