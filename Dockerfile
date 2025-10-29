@@ -85,11 +85,20 @@ RUN mkdir -p /var/www/html/storage/logs \
 
 # Set proper permissions again after creating directories
 RUN chown -R www-data:www-data /var/www/html/storage \
-    && chmod -R 775 /var/www/html/storage
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 # Create entrypoint script
 RUN echo '#!/bin/bash\n\
 set -e\n\
+\n\
+# Fix permissions at runtime\n\
+echo "Setting up permissions..."\n\
+chown -R www-data:www-data /var/www/html/storage\n\
+chown -R www-data:www-data /var/www/html/bootstrap/cache\n\
+chmod -R 775 /var/www/html/storage\n\
+chmod -R 775 /var/www/html/bootstrap/cache\n\
 \n\
 # Generate APP_KEY if not set\n\
 if [ -z "$APP_KEY" ]; then\n\
