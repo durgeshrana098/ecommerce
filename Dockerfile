@@ -89,26 +89,40 @@ RUN chown -R www-data:www-data /var/www/html/storage \
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
-# Wait for database to be ready\n\
-echo "Waiting for database..."\n\
-until php artisan migrate:status > /dev/null 2>&1; do\n\
-    echo "Database not ready, waiting..."\n\
-    sleep 5\n\
-done\n\
+# Start Apache in background\n\
+apache2-foreground &\n\
+APACHE_PID=$!\n\
 \n\
-# Run migrations\n\
-php artisan migrate --force\n\
+# Wait a bit for Apache to start\n\
+sleep 3\n\
 \n\
-# Clear and cache config\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
+# Try database operations in background\n\
+{\n\
+    echo "Checking database connection..."\n\
+    # Wait for database with timeout\n\
+    timeout=300\n\
+    counter=0\n\
+    until php artisan migrate:status > /dev/null 2>&1 || [ $counter -eq $timeout ]; do\n\
+        echo "Database not ready, waiting... ($counter/$timeout)"\n\
+        sleep 5\n\
+        counter=$((counter + 5))\n\
+    done\n\
+    \n\
+    if [ $counter -lt $timeout ]; then\n\
+        echo "Database connected! Running migrations..."\n\
+        php artisan migrate --force\n\
+        php artisan config:cache\n\
+        php artisan route:cache\n\
+        php artisan view:cache\n\
+        php artisan storage:link\n\
+        echo "Database setup complete!"\n\
+    else\n\
+        echo "Database connection timeout. App will run without database setup."\n\
+    fi\n\
+} &\n\
 \n\
-# Create storage link\n\
-php artisan storage:link\n\
-\n\
-# Start Apache\n\
-exec apache2-foreground' > /usr/local/bin/entrypoint.sh \
+# Wait for Apache process\n\
+wait $APACHE_PID' > /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80
