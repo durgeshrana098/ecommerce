@@ -66,7 +66,11 @@ RUN chown -R www-data:www-data /var/www/html \
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Install Node.js dependencies and build assets
-RUN npm ci --only=production \
+RUN if [ -f "package-lock.json" ]; then \
+        npm ci --omit=dev; \
+    else \
+        npm install --production; \
+    fi \
     && npm run build \
     && rm -rf node_modules
 
