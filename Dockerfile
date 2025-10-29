@@ -21,12 +21,14 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     libmcrypt-dev \
     libgd-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
+    pdo_pgsql \
     mbstring \
     exif \
     pcntl \
@@ -89,6 +91,12 @@ RUN chown -R www-data:www-data /var/www/html/storage \
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
+# Generate APP_KEY if not set\n\
+if [ -z "$APP_KEY" ]; then\n\
+    echo "Generating APP_KEY..."\n\
+    php artisan key:generate --force\n\
+fi\n\
+\n\
 # Start Apache in background\n\
 apache2-foreground &\n\
 APACHE_PID=$!\n\
@@ -100,7 +108,7 @@ sleep 3\n\
 {\n\
     echo "Checking database connection..."\n\
     # Wait for database with timeout\n\
-    timeout=300\n\
+    timeout=60\n\
     counter=0\n\
     until php artisan migrate:status > /dev/null 2>&1 || [ $counter -eq $timeout ]; do\n\
         echo "Database not ready, waiting... ($counter/$timeout)"\n\
@@ -109,7 +117,7 @@ sleep 3\n\
     done\n\
     \n\
     if [ $counter -lt $timeout ]; then\n\
-        echo "Database connected! Running migrations..."\n\
+        echo "Database connected! Running setup..."\n\
         php artisan migrate --force\n\
         php artisan config:cache\n\
         php artisan route:cache\n\
@@ -117,7 +125,9 @@ sleep 3\n\
         php artisan storage:link\n\
         echo "Database setup complete!"\n\
     else\n\
-        echo "Database connection timeout. App will run without database setup."\n\
+        echo "Database connection timeout. App will run in installer mode."\n\
+        # Clear config cache to allow installer\n\
+        php artisan config:clear\n\
     fi\n\
 } &\n\
 \n\
